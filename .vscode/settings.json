@@ -23,7 +23,7 @@
       "editor.codeActionsOnSave": {
         "source.fixAll": "explicit",
         "source.fixAll.unusedImports": "explicit",
-        "source.organizeImports": "explicit"
+        "source.organizeImports": "explicit",
       }
     },
     "python.languageServer": "Pylance",
@@ -50,5 +50,6 @@
     "explorer.confirmDelete": false,
     "explorer.confirmDragAndDrop": false,
     "editor.wordWrap": "wordWrapColumn",
-    "python.analysis.autoImportCompletions": true
+    "python.analysis.autoImportCompletions": true,
+    "editor.renderWhitespace": "all",
   }
