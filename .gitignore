@@ -1,3 +1,4 @@
 /aulas
 /.mypy_cache
 /venv
+/projeto_calculadora/__pycache__
