@@ -25,7 +25,7 @@ if __name__ == '__main__':
     display.setPlaceholderText('0')
     window.addWidgetToVLayout(display)
 
-    buttonsGrid = ButtonsGrid(display, info)
+    buttonsGrid = ButtonsGrid(display, info, window)
     window.mainLayout.addLayout(buttonsGrid)
 
     window.adjustFixedSize()
