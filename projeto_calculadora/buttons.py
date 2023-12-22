@@ -57,7 +57,16 @@ class ButtonsGrid(QGridLayout):
         self._equation = value
         self.info.setText(value)
 
+    def num(self, text):
+        print(f'Signal {text}')
+
     def _makeGrid(self):
+        self.display.eqPressed.connect(lambda: print(123))
+        self.display.delPressed.connect(self.display.backspace)
+        self.display.escPressed.connect(lambda: print(123))
+        self.display.inputPressed.connect(self.num)
+        self.display.operatorPressed.connect(self.num)
+
         for i, row in enumerate(self._gridMask):
             for j, buttonText in enumerate(row):
                 button = Button(buttonText)
@@ -143,6 +152,7 @@ class ButtonsGrid(QGridLayout):
         result = 'Error'
 
         if not isValidNumber(displayText):
+            self._showError('Você não digitou um dos valores.')
             return
 
         self._left: float  # type:ignore
@@ -156,13 +166,13 @@ class ButtonsGrid(QGridLayout):
             try:
                 result = self._left / self._right
             except ZeroDivisionError:
-                print('Não posso dividir por 0')
+                self._showError('Não existe divisão por 0.')
 
         if self._operator == '^':
             try:
                 result = math.pow(self._left, self._right)
             except OverflowError:
-                print('Número muito grande')
+                self._showError('O resultado é muito grande.')
 
         if self._operator == '+' or self._operator == '-':
             result = eval(self.equation)
@@ -180,3 +190,8 @@ class ButtonsGrid(QGridLayout):
         msgBox.setText(text)
         msgBox.setIcon(msgBox.Icon.Critical)
         msgBox.exec()
+
+    def _showInfo(self, text):
+        msgBox = self.window.makeMsgBox()
+        msgBox.setText(text)
+        msgBox.setIcon(msgBox.Icon.Information)
