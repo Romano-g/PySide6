@@ -35,7 +35,7 @@ class ButtonsGrid(QGridLayout):
             ['7', '8', '9', 'x'],
             ['4', '5', '6', '-'],
             ['1', '2', '3', '+'],
-            ['0',  '', '.', '='],
+            ['N', '0', '.', '='],
         ]
 
         self.display = display
@@ -57,15 +57,13 @@ class ButtonsGrid(QGridLayout):
         self._equation = value
         self.info.setText(value)
 
-    def num(self, text):
-        print(f'Signal {text}')
-
     def _makeGrid(self):
-        self.display.eqPressed.connect(lambda: print(123))
-        self.display.delPressed.connect(self.display.backspace)
-        self.display.escPressed.connect(lambda: print(123))
-        self.display.inputPressed.connect(self.num)
-        self.display.operatorPressed.connect(self.num)
+        self.display.eqPressed.connect(self._equal)
+        self.display.delPressed.connect(self._backspace)
+        self.display.escPressed.connect(self._clear)
+        self.display.inputPressed.connect(self._insertToDisplay)
+        self.display.operatorPressed.connect(self._configLeftOp)
+        self.display.negativePressed.connect(self._negativeNumber)
 
         for i, row in enumerate(self._gridMask):
             for j, buttonText in enumerate(row):
@@ -75,17 +73,11 @@ class ButtonsGrid(QGridLayout):
                     button.setProperty('cssClass', 'specialButton')
                     self._configSpecialButton(button)
 
-                elif buttonText == '':
-                    continue
-
-                elif buttonText == '0':
-                    self.addWidget(button, i, j, 1, 2)
-
                 self.addWidget(button, i, j)
 
                 buttonSlot = self._makeSlot(
-                    self._insertButtonTextToDisplay,
-                    button,
+                    self._insertToDisplay,
+                    buttonText,
                 )
                 self._connectButtonClicked(button, buttonSlot)
 
@@ -101,39 +93,57 @@ class ButtonsGrid(QGridLayout):
         elif text in '+-÷x^':
             self._connectButtonClicked(
                 button,
-                self._makeSlot(self._operatorClicked, button)
+                self._makeSlot(self._configLeftOp, text)
             )
 
         elif text == '=':
             self._connectButtonClicked(button, self._equal)
 
         elif text == '◀':
-            self._connectButtonClicked(button, self.display.backspace)
+            self._connectButtonClicked(button, self._backspace)
 
+        elif text == 'N':
+            self._connectButtonClicked(button, self._negativeNumber)
+
+    @Slot()
     def _makeSlot(self, func, *args, **kwargs):
         @Slot(bool)
         def realSlot():
             func(*args, **kwargs)
         return realSlot
 
-    def _insertButtonTextToDisplay(self, button):
-        buttonText = button.text()
-        newDisplayValue = self.display.text() + buttonText
+    @Slot()
+    def _negativeNumber(self, text):
+        displayText = self.display.text()
+
+        if not isValidNumber(displayText):
+            return
+
+        text = -float(displayText)
+        self.display.setText(str(text))
+        self.display.setFocus()
+
+    @Slot()
+    def _insertToDisplay(self, text):
+        newDisplayValue = self.display.text() + text
 
         if not isValidNumber(newDisplayValue):
             return
 
-        self.display.insert(buttonText)
+        self.display.insert(text)
+        self.display.setFocus()
 
+    @Slot()
     def _clear(self):
         self._left = None
         self._right = None
         self._operator = None
         self.equation = ''
         self.display.clear()
+        self.display.setFocus()
 
-    def _operatorClicked(self, button):
-        buttonText = button.text()
+    @Slot()
+    def _configLeftOp(self, text):
         displayText = self.display.text()
         self.display.clear()
 
@@ -144,15 +154,17 @@ class ButtonsGrid(QGridLayout):
         elif self._left is None:
             self._left = float(displayText)
 
-        self._operator = buttonText
+        self._operator = text
         self.equation = f'{self._left} {self._operator}'
+        self.display.setFocus()
 
+    @Slot()
     def _equal(self):
         displayText = self.display.text()
         result = 'Error'
 
-        if not isValidNumber(displayText):
-            self._showError('Você não digitou um dos valores.')
+        if not isValidNumber(displayText) or self._left is None:
+            self._showInfo('Você não digitou um dos valores.')
             return
 
         self._left: float  # type:ignore
@@ -161,37 +173,50 @@ class ButtonsGrid(QGridLayout):
 
         if self._operator == 'x':
             result = self._left * self._right
+            self.display.setFocus()
 
         if self._operator == '÷':
             try:
                 result = self._left / self._right
+                self.display.setFocus()
             except ZeroDivisionError:
                 self._showError('Não existe divisão por 0.')
 
         if self._operator == '^':
             try:
                 result = math.pow(self._left, self._right)
+                self.display.setFocus()
             except OverflowError:
-                self._showError('O resultado é muito grande.')
+                self._showInfo('O resultado é muito grande.')
 
         if self._operator == '+' or self._operator == '-':
             result = eval(self.equation)
+            self.display.setFocus()
 
         self.display.clear()
         self.info.setText(f'{self.equation} = {result}')
         self._left = result  # type:ignore
         self._right = None
+        self.display.setFocus()
 
         if result == 'Error':
             self._left = None  # type:ignore
+
+    @Slot()
+    def _backspace(self):
+        self.display.backspace()
+        self.display.setFocus()
 
     def _showError(self, text):
         msgBox = self.window.makeMsgBox()
         msgBox.setText(text)
         msgBox.setIcon(msgBox.Icon.Critical)
         msgBox.exec()
+        self.display.setFocus()
 
     def _showInfo(self, text):
         msgBox = self.window.makeMsgBox()
         msgBox.setText(text)
         msgBox.setIcon(msgBox.Icon.Information)
+        msgBox.exec()
+        self.display.setFocus()
